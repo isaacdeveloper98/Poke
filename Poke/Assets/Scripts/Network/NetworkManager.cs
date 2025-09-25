@@ -11,7 +11,7 @@ public class NetworkManager : MonoBehaviour
     public static NetworkManager Instance { get; private set; }
 
     private Dictionary<string, string> registeredUsers = new Dictionary<string, string>();
-    private Dictionary<string, CharacterData> characterDatabase = new Dictionary<string, CharacterData>();
+    private Dictionary<string, List<CharacterData>> characterDatabase = new Dictionary<string, List<CharacterData>>();
 
     private void Awake()
     {
@@ -56,19 +56,57 @@ public class NetworkManager : MonoBehaviour
 
     public void SendCharacterCreationRequest(CharacterData data)
     {
-        if (characterDatabase.ContainsKey(data.characterName))
+        if (data == null)
+        {
+            Debug.LogError("Character data cannot be null.");
+            return;
+        }
+
+        if (string.IsNullOrEmpty(data.ownerUsername))
+        {
+            Debug.LogError("Character must have a valid owner before creation.");
+            return;
+        }
+
+        if (!characterDatabase.ContainsKey(data.ownerUsername))
+        {
+            characterDatabase[data.ownerUsername] = new List<CharacterData>();
+        }
+
+        List<CharacterData> ownerCharacters = characterDatabase[data.ownerUsername];
+
+        if (ownerCharacters.Exists(c => c.characterName == data.characterName))
         {
             Debug.LogError("Character name already exists!");
             return;
         }
 
-        characterDatabase[data.characterName] = data;
+        ownerCharacters.Add(data);
         Debug.Log($"[NetworkManager] Character '{data.characterName}' created.");
     }
 
     public List<CharacterData> GetAllCharacters()
     {
-        return new List<CharacterData>(characterDatabase.Values);
+        var accountManager = AccountManager.Instance;
+        if (accountManager == null)
+        {
+            Debug.LogError("AccountManager instance is not available. Cannot fetch characters.");
+            return new List<CharacterData>();
+        }
+
+        string ownerUsername = accountManager.GetLoggedInUser();
+        if (string.IsNullOrEmpty(ownerUsername))
+        {
+            Debug.LogWarning("No user is currently logged in. Returning empty character list.");
+            return new List<CharacterData>();
+        }
+
+        if (!characterDatabase.TryGetValue(ownerUsername, out List<CharacterData> ownerCharacters))
+        {
+            return new List<CharacterData>();
+        }
+
+        return new List<CharacterData>(ownerCharacters);
     }
 
     #endregion
