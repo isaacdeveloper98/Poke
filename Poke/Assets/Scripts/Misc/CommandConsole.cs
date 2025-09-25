@@ -1,6 +1,7 @@
 using UnityEngine;
 using System;
 using System.Collections.Generic;
+using System.Text;
 
 /// <summary>
 /// Developer/admin console for commands.
@@ -53,19 +54,19 @@ public class CommandConsole : MonoBehaviour
     {
         commands["register"] = args =>
         {
-            if (args.Length < 3) { Debug.Log("Usage: register <username> <password> <email>"); return; }
+            if (args.Length < 3) { Debug.Log("Usage: register <username> <password> <email> (use quotes for multi-word values)"); return; }
             AccountManager.Instance.Register(args[0], args[1], args[2]);
         };
 
         commands["login"] = args =>
         {
-            if (args.Length < 2) { Debug.Log("Usage: login <username> <password>"); return; }
+            if (args.Length < 2) { Debug.Log("Usage: login <username> <password> (use quotes for multi-word values)"); return; }
             AccountManager.Instance.Login(args[0], args[1]);
         };
 
         commands["createchar"] = args =>
         {
-            if (args.Length < 3) { Debug.Log("Usage: createchar <name> <race> <gender>"); return; }
+            if (args.Length < 3) { Debug.Log("Usage: createchar <name> <race> <gender> (use quotes for multi-word names)"); return; }
 
             if (!Enum.TryParse(args[1], true, out PlayerRace race)) { Debug.Log("Invalid race."); return; }
             if (!Enum.TryParse(args[2], true, out PlayerGender gender)) { Debug.Log("Invalid gender."); return; }
@@ -87,10 +88,42 @@ public class CommandConsole : MonoBehaviour
     {
         if (string.IsNullOrWhiteSpace(inputLine)) return;
 
-        string[] split = inputLine.Split(' ');
-        string cmd = split[0].ToLower();
-        string[] args = new string[split.Length - 1];
-        Array.Copy(split, 1, args, 0, args.Length);
+        List<string> tokens = new List<string>();
+        StringBuilder currentToken = new StringBuilder();
+        bool inQuotes = false;
+
+        foreach (char c in inputLine)
+        {
+            if (c == '"')
+            {
+                inQuotes = !inQuotes;
+                continue;
+            }
+
+            if (char.IsWhiteSpace(c) && !inQuotes)
+            {
+                if (currentToken.Length > 0)
+                {
+                    tokens.Add(currentToken.ToString());
+                    currentToken.Length = 0;
+                }
+            }
+            else
+            {
+                currentToken.Append(c);
+            }
+        }
+
+        if (currentToken.Length > 0)
+        {
+            tokens.Add(currentToken.ToString());
+        }
+
+        if (tokens.Count == 0) return;
+
+        string cmd = tokens[0].ToLower();
+        string[] args = new string[tokens.Count - 1];
+        tokens.CopyTo(1, args, 0, args.Length);
 
         if (commands.ContainsKey(cmd))
         {
