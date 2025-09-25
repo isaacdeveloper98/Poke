@@ -29,8 +29,23 @@ public class CharacterCreator : MonoBehaviour
             return;
         }
 
+        var accountManager = AccountManager.Instance;
+        if (accountManager == null)
+        {
+            Debug.LogError("AccountManager instance is not available. Cannot create character.");
+            return;
+        }
+
+        string ownerUsername = accountManager.GetLoggedInUser();
+        if (string.IsNullOrEmpty(ownerUsername))
+        {
+            Debug.LogError("No user is currently logged in. Cannot create character.");
+            return;
+        }
+
         CharacterData newChar = new CharacterData
         {
+            ownerUsername = ownerUsername,
             characterName = name,
             race = race,
             gender = gender,

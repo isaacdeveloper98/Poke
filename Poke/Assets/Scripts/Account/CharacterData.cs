@@ -6,6 +6,7 @@ public enum PlayerGender { Male, Female, NonBinary }
 [System.Serializable]
 public class CharacterData
 {
+    public string ownerUsername;
     public string characterName;
     public PlayerRace race;
     public PlayerGender gender;
